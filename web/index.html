@@ -180,6 +180,22 @@ body.resting{padding-bottom:180px}
 .ntest{margin-top:10px;display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;font-size:13px;color:var(--muted)}
 .ntest button{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:8px;padding:8px 12px;font:600 14px var(--body);cursor:pointer}
 @media (prefers-reduced-motion:reduce){.rb.flash,.rbtx b.pulse{animation:none}}
+
+.lwrap{grid-column:1/-1;border-top:1px solid var(--line);padding-top:8px;margin-top:-2px}
+.load{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin:0 0 4px}
+.load .ll{font-size:12px;font-weight:600;color:var(--muted);margin-right:2px}
+.lstep{width:34px;height:34px;border-radius:50%;border:2px solid var(--line);background:transparent;color:var(--ink);font:700 18px/1 var(--body);cursor:pointer}
+.lkg{width:64px;height:34px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:700 16px var(--body);text-align:center;font-variant-numeric:tabular-nums;padding:0 4px}
+.load .lu{font-size:13px;color:var(--muted)}
+.lhist{border:0;background:transparent;color:var(--accent);font:600 13px var(--body);text-decoration:underline;text-underline-offset:2px;cursor:pointer;padding:4px 2px}
+.linfo{margin:0;font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.linfo b{color:var(--accent);font-weight:600}
+.lstep:focus-visible,.lkg:focus-visible,.lhist:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+#zoom .hlist{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:6px}
+#zoom .hlist li{display:flex;justify-content:space-between;align-items:center;gap:10px;border-bottom:1px solid var(--line);padding:6px 0;font-variant-numeric:tabular-nums}
+#zoom .hlist button{margin:0;width:auto;background:transparent;color:var(--muted);border:1px solid var(--line);padding:4px 10px;font:600 13px var(--body)}
+#zoom .spark{width:100%;height:90px;display:block;margin-top:6px}
+#zoom .hsum{margin:4px 0 0;font-size:14px;color:var(--muted)}
 </style>
 
 <div class="wrap">
@@ -311,7 +327,7 @@ var PT={"abductors":"Abdutores","adductors":"Adutores","anterior_deltoid":"Ombro
       ex('Rosca na polia','curl','2 × 15','30–40 s','Barra na polia baixa, pegada por baixo, cotovelos junto ao corpo. Bíceps passa a ser treinado 3 vezes por semana.')]},
     {id:'sex',s:'Sex',tag:'Treino 3',title:'Sexta: Treino 3',sub:'Agachamento, flexora, puxada fechada e peito',items:[
       warm,
-      ex('Agachamento com dois halteres','squatDb','3 × 12','50 s','Hoje 14 kg em cada mão, próximo passo 16 kg. Amplo e controlado.'),
+      ex('Agachamento com dois halteres','squatDb','3 × 12','50 s','Anote o peso de cada halter. Amplo e controlado.'),
       ex('Flexora unilateral em pé','curl','3 × 12 por perna','50 s','Na máquina em pé, uma perna de cada vez. Quadril encostado no apoio, sem jogar o corpo. Suba o calcanhar até o glúteo e desça devagar.'),
       ex('Puxada frontal pegada fechada','pull','3 × 12','50 s','Costas retas, alongamento completo.'),
       ex('Crucifixo na máquina','machine','3 × 12','50 s','Movimento em arco, alongue o peitoral.'),
@@ -379,7 +395,7 @@ var PT={"abductors":"Abdutores","adductors":"Adutores","anterior_deltoid":"Ombro
     }
     if(m.s.length)h+='<p class="msec"><b>Auxiliares:</b> '+m.s.map(function(k){return PT[k]||k}).join(', ')+'</p>';
     h+='<button type="button" id="zclose">Fechar</button>';
-    zcard.innerHTML=h;
+    zcard.onclick=null;zcard.innerHTML=h;
     zcard.querySelector('h3').textContent=btn.getAttribute('data-name');
     zoom.hidden=false;document.getElementById('zclose').focus();
   }
@@ -387,6 +403,65 @@ var PT={"abductors":"Abdutores","adductors":"Adutores","anterior_deltoid":"Ombro
   zoom.addEventListener('click',function(ev){if(ev.target===zoom||ev.target.id==='zclose')closeZoom()});
   document.addEventListener('keydown',function(ev){if(ev.key==='Escape'&&!zoom.hidden)closeZoom()});
   dayEl.addEventListener('click',function(ev){var b=ev.target.closest('[data-zoom]');if(b)openZoom(b)});
+  /* ---------- cargas ---------- */
+  var LKEY='trinca-cargas',NOLOAD={'Elevação de pernas':1,'Abdominal deitado ou infra':1,'Prancha abdominal':1};
+  function localDay(){var d=new Date();return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2)}
+  function br(d){var p=d.split('-');return p[2]+'/'+p[1]}
+  function brFull(d){var p=d.split('-');return p[2]+'/'+p[1]+'/'+p[0]}
+  function getLoads(){var v=store(function(s){return s.getItem(LKEY)});try{return v?JSON.parse(v):{}}catch(e){return{}}}
+  function saveLoads(o){store(function(s){s.setItem(LKEY,JSON.stringify(o))})}
+  function fkg(n){return (Math.round(n*10)/10).toString().replace('.',',')}
+  function hasLoad(e){return !!e.ns&&!e.c&&!/\d\s*s\b/.test(e.s)&&!NOLOAD[e.n]}
+  function loadInfo(n){
+    var h=getLoads()[n]||[],t=localDay();
+    if(!h.length)return 'Sem registro ainda. Anote a carga de hoje.';
+    var last=h[h.length-1],txt;
+    if(last.d===t){var pv=h[h.length-2];txt='Hoje: '+fkg(last.kg)+' kg'+(pv?' · antes: '+fkg(pv.kg)+' kg ('+br(pv.d)+')':'')}
+    else txt='Última: '+fkg(last.kg)+' kg ('+br(last.d)+')';
+    if(h.length>1){var dlt=last.kg-h[0].kg;if(Math.abs(dlt)>=0.05)txt+=' · <b>'+(dlt>0?'+':'−')+fkg(Math.abs(dlt))+' kg</b> desde '+br(h[0].d)}
+    return txt;
+  }
+  function loadHtml(e){
+    if(!hasLoad(e))return '';
+    var h=getLoads()[e.n]||[],last=h[h.length-1],v=last?fkg(last.kg):'';
+    return '<div class="load"><span class="ll">Carga</span><button type="button" class="lstep" data-d="-1" aria-label="Diminuir 1 kg">−</button>'+
+      '<input class="lkg" type="text" inputmode="decimal" value="'+v+'" placeholder="0" aria-label="Carga de '+e.n+' em kg">'+
+      '<span class="lu">kg</span><button type="button" class="lstep" data-d="1" aria-label="Aumentar 1 kg">+</button>'+
+      '<button type="button" class="lhist">Histórico</button></div><p class="linfo">'+loadInfo(e.n)+'</p>';
+  }
+  function setLoad(n,kg){
+    var o=getLoads(),h=o[n]||[],t=localDay();
+    if(h.length&&h[h.length-1].d===t)h.pop();
+    if(kg>0)h.push({d:t,kg:Math.round(kg*10)/10});
+    if(h.length>300)h=h.slice(-300);
+    if(h.length)o[n]=h;else delete o[n];
+    saveLoads(o);
+  }
+  function openHist(n,btn){
+    lastBtn=btn;
+    var h=getLoads()[n]||[],x='<h3></h3>';
+    if(!h.length)x+='<p class="hsum">Nenhuma carga registrada ainda.</p>';
+    else{
+      var mn=Infinity,mx=-Infinity;h.forEach(function(r){mn=Math.min(mn,r.kg);mx=Math.max(mx,r.kg)});
+      x+='<p class="hsum">'+h.length+' registro'+(h.length>1?'s':'')+' · de '+fkg(h[0].kg)+' kg ('+br(h[0].d)+') para '+fkg(h[h.length-1].kg)+' kg ('+br(h[h.length-1].d)+')</p>';
+      if(h.length>1){
+        var W=300,H=90,p=8,rg=(mx-mn)||1,pts=h.map(function(r,i){return [p+(W-2*p)*i/(h.length-1),H-p-(H-2*p)*(r.kg-mn)/rg]});
+        x+='<svg class="spark" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" aria-hidden="true"><polyline fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linejoin="round" points="'+pts.map(function(q){return q[0].toFixed(1)+','+q[1].toFixed(1)}).join(' ')+'"/>'+
+          pts.map(function(q){return '<circle cx="'+q[0].toFixed(1)+'" cy="'+q[1].toFixed(1)+'" r="3.5" fill="var(--accent)"/>'}).join('')+'</svg>';
+      }
+      x+='<ul class="hlist">';
+      for(var i=h.length-1;i>=0;i--)x+='<li><span>'+brFull(h[i].d)+'</span><b>'+fkg(h[i].kg)+' kg</b><button type="button" data-del="'+i+'">Apagar</button></li>';
+      x+='</ul>';
+    }
+    x+='<button type="button" id="zclose">Fechar</button>';
+    zcard.innerHTML=x;zcard.querySelector('h3').textContent=n;
+    zcard.onclick=function(ev){
+      var b=ev.target.closest('[data-del]');if(!b)return;
+      var o=getLoads(),hh=o[n]||[];hh.splice(+b.getAttribute('data-del'),1);
+      if(hh.length)o[n]=hh;else delete o[n];saveLoads(o);openHist(n,btn);render();
+    };
+    zoom.hidden=false;document.getElementById('zclose').focus();
+  }
   function setsHtml(e,j,c){
     if(!e.ns)return '';
     var h='<div class="sets" role="group" aria-label="Séries de '+e.n+'"><span>Séries</span>';
@@ -420,7 +495,7 @@ var PT={"abductors":"Abdutores","adductors":"Adutores","anterior_deltoid":"Ombro
           '<div class="body"><h3>'+e.n+'</h3><div class="chips"><span class="chip">'+e.s+'</span>'+(e.r?'<span class="chip">Descanso '+e.r+'</span>':'')+'</div>'+
           setsHtml(e,j,sets[j]||0)+musLine(e)+'<p class="tip">'+e.t+'</p>'+
           (e.n==='Aquecimento'?'':'<a class="link" href="'+q(e.n)+'" target="_blank" rel="noopener">Ver exemplos</a>')+'</div>'+
-          '<button type="button" class="check" aria-pressed="'+isDone+'" aria-label="Marcar '+e.n+' como feito">'+CHECK+'</button></li>';
+          '<button type="button" class="check" aria-pressed="'+isDone+'" aria-label="Marcar '+e.n+' como feito">'+CHECK+'</button>'+(hasLoad(e)?'<div class="lwrap">'+loadHtml(e)+'</div>':'')+'</li>';
       });
       h+='</ul><div class="foot"><span class="progress">Marcações valem só para hoje</span><button type="button" class="reset" id="reset">Limpar dia</button></div>';
     }
@@ -428,6 +503,15 @@ var PT={"abductors":"Abdutores","adductors":"Adutores","anterior_deltoid":"Ombro
     var list=dayEl.querySelector('.list');
     if(list){
       list.addEventListener('click',function(ev){
+        var ls=ev.target.closest('.lstep');
+        if(ls){
+          var lli=ls.closest('.ex'),le=DAYS[cur].items[+lli.getAttribute('data-j')],inp=lli.querySelector('.lkg');
+          var cv=parseFloat(String(inp.value).replace(',','.'));if(isNaN(cv))cv=0;
+          cv=Math.max(0,cv+(+ls.getAttribute('data-d')));
+          inp.value=cv?fkg(cv):'';setLoad(le.n,cv);lli.querySelector('.linfo').innerHTML=loadInfo(le.n);return;
+        }
+        var lh=ev.target.closest('.lhist');
+        if(lh){openHist(DAYS[cur].items[+lh.closest('.ex').getAttribute('data-j')].n,lh);return}
         var sb=ev.target.closest('.set');
         if(sb){
           var li2=sb.closest('.ex'),j2=+li2.getAttribute('data-j'),e2=DAYS[cur].items[j2],o=getSets(cur),c=o[j2]||0,k=+sb.getAttribute('data-k'),a2=getDone(cur),p2=a2.indexOf(j2);
@@ -445,6 +529,13 @@ var PT={"abductors":"Abdutores","adductors":"Adutores","anterior_deltoid":"Ombro
         if(p>-1){a.splice(p,1);if(it.ns)os[j]=0}else{a.push(j);if(it.ns)os[j]=it.ns}
         setDone(cur,a);saveSets(cur,os);paintItem(li,j);
       });
+      list.addEventListener('change',function(ev){
+        var inp=ev.target.closest('.lkg');if(!inp)return;
+        var li3=inp.closest('.ex'),e3=DAYS[cur].items[+li3.getAttribute('data-j')];
+        var v=parseFloat(String(inp.value).replace(',','.'));if(isNaN(v)||v<0)v=0;
+        inp.value=v?fkg(v):'';setLoad(e3.n,v);li3.querySelector('.linfo').innerHTML=loadInfo(e3.n);
+      });
+      list.addEventListener('keydown',function(ev){if(ev.key==='Enter'&&ev.target.classList.contains('lkg'))ev.target.blur()});
       document.getElementById('reset').addEventListener('click',function(){setDone(cur,[]);saveSets(cur,{});render()});
     }
   }
