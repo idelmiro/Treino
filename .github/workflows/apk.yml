@@ -22,15 +22,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Conferir senha da chave
-        env:
-          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-        run: |
-          if [ -z "$KEYSTORE_PASSWORD" ]; then
-            echo "::error::Falta o segredo KEYSTORE_PASSWORD (Settings > Secrets and variables > Actions)."
-            exit 1
-          fi
-
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -47,19 +38,26 @@ jobs:
 
       - name: Compilar APK assinado
         env:
-          KEYSTORE_FILE: ${{ github.workspace }}/android/treino-release.jks
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: treino
-        run: gradle -p android assembleRelease -PversionCode=${{ github.run_number }} --no-daemon --stacktrace
+        run: |
+          if [ -n "$KEYSTORE_PASSWORD" ]; then export KEYSTORE_FILE="$GITHUB_WORKSPACE/android/treino-release.jks"; fi
+          gradle -p android assembleRelease -PversionCode=${{ github.run_number }} --no-daemon --stacktrace
 
       - name: Publicar versão
         env:
           GH_TOKEN: ${{ github.token }}
           NOTES: ${{ github.event.head_commit.message }}
           V: ${{ github.run_number }}
+          HAS_KEY: ${{ secrets.KEYSTORE_PASSWORD != '' }}
         run: |
+          if [ "$HAS_KEY" != "true" ]; then
+            echo "::error::O APK compilou, mas falta o segredo KEYSTORE_PASSWORD para assinar e publicar (Settings > Secrets and variables > Actions)."
+            exit 1
+          fi
           cp android/app/build/outputs/apk/release/app-release.apk "treino-v$V.apk"
+          NOTES=$(printf '%s\n' "$NOTES" | grep -vE '^(Co-Authored-By|Claude-Session):' | sed -e :a -e '/^\n*$/{$d;N;ba' -e '}')
           gh release create "v$V" "treino-v$V.apk" \
             --title "Treino versão $V" \
             --notes "${NOTES:-Nova versão do app.}" \
