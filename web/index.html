@@ -600,7 +600,9 @@ var PT={"abductors":"Abdutores","adductors":"Adutores","anterior_deltoid":"Ombro
   function flash(){
     tm.classList.remove('flash');void tm.offsetWidth;tm.classList.add('flash');
   }
+  function af(ms){try{if(window.TreinoNative&&window.TreinoNative.focusFor)window.TreinoNative.focusFor(ms)}catch(e){}}
   function cue(type){
+    af(type==='tick'?5000:4000);
     if(cfg.sound){
       if(type==='fast'){beep(784,.16,0);beep(988,.16,.2);beep(1319,.3,.4)}
       else if(type==='slow'){beep(659,.25,0);beep(494,.4,.32)}
@@ -730,6 +732,7 @@ var PT={"abductors":"Abdutores","adductors":"Adutores","anterior_deltoid":"Ombro
   var S={end:0,dur:0,label:'',next:'',fired:false,beep:-1,iv:null,to:null,ctx:null,hideTo:null};
   function cfg(){var c={sound:true,voice:true,vibe:true};try{var v=JSON.parse(localStorage.getItem('trinca-timer')||'null');if(v)for(var k in c)if(v[k]!==undefined)c[k]=v[k]}catch(e){}return c}
   function nat(f){try{if(window.TreinoNative)f(window.TreinoNative)}catch(e){}}
+  function af(ms){nat(function(N){if(N.focusFor)N.focusFor(ms)})}
   function natSchedule(){nat(function(N){var sec=Math.max(1,Math.round((S.end-Date.now())/1000));N.scheduleRest(sec,'Descanso terminou',S.next||'Hora da próxima série')})}
   function persist(){try{if(S.end)localStorage.setItem(KEY,JSON.stringify({end:S.end,dur:S.dur,label:S.label,next:S.next,fired:S.fired}));else localStorage.removeItem(KEY)}catch(e){}}
   function fmt(s){s=Math.max(0,s);return Math.floor(s/60)+':'+(s%60<10?'0':'')+(s%60)}
@@ -752,7 +755,7 @@ var PT={"abductors":"Abdutores","adductors":"Adutores","anterior_deltoid":"Ombro
   function hide(){rb.hidden=true;rb.classList.remove('go');document.body.classList.remove('resting')}
   function done(late){
     S.fired=true;persist();clearInterval(S.iv);clearTimeout(S.to);nat(function(N){N.cancelRest()});
-    var c=cfg();
+    var c=cfg();af(4000);
     if(c.sound){beep(660,.18,0);beep(880,.18,.22);beep(1175,.4,.44)}
     vib([400,150,400]);say(/^Série/.test(S.next)?'Próxima série':'Próximo exercício');
     if(document.hidden&&!window.TreinoNative)notify();
@@ -765,7 +768,7 @@ var PT={"abductors":"Abdutores","adductors":"Adutores","anterior_deltoid":"Ombro
     if(!S.end||S.fired)return;
     var rem=S.end-Date.now(),sec=Math.ceil(rem/1000);
     if(rem<=0){var late=Math.floor(-rem/1000);done(late>5?late:0);return}
-    if(sec<=3&&sec!==S.beep){S.beep=sec;if(cfg().sound)beep(720,.09,0,.35);vib(60)}
+    if(sec<=3&&sec!==S.beep){if(S.beep<0||sec===3)af(6000);S.beep=sec;if(cfg().sound)beep(720,.09,0,.35);vib(60)}
     tim.textContent=fmt(sec);tim.classList.toggle('pulse',sec<=3);
     fill.style.width=(100*(1-rem/(S.dur*1000)))+'%';
   }

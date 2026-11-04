@@ -14,6 +14,8 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.media.AudioAttributes;
+import android.media.AudioFocusRequest;
+import android.media.AudioManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -55,6 +57,10 @@ public class MainActivity extends Activity {
     private final Handler main = new Handler(Looper.getMainLooper());
     private long pendingDownload = -1;
     private BroadcastReceiver downloadReceiver;
+    private AudioFocusRequest focusReq;
+    private boolean hasFocus = false;
+    private long focusUntil = 0;
+    private final Runnable focusRelease = this::releaseFocusIfDue;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -134,6 +140,7 @@ public class MainActivity extends Activity {
     protected void onDestroy() {
         try { unregisterReceiver(downloadReceiver); } catch (Exception ignored) {}
         if (tts != null) tts.shutdown();
+        if (hasFocus && focusReq != null) getSystemService(AudioManager.class).abandonAudioFocusRequest(focusReq);
         super.onDestroy();
     }
 
@@ -183,6 +190,37 @@ public class MainActivity extends Activity {
     void cancelRest() {
         getSystemService(AlarmManager.class).cancel(restIntent("", ""));
         getSystemService(NotificationManager.class).cancel(RestReceiver.NOTIF_ID);
+    }
+
+    /* ---------- prioridade de áudio: pausa a música durante os avisos ---------- */
+
+    static AudioFocusRequest buildFocusRequest() {
+        return new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT)
+                .setAudioAttributes(new AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_ASSISTANCE_SONIFICATION)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION).build())
+                .setOnAudioFocusChangeListener(change -> {})
+                .build();
+    }
+
+    void focusFor(long ms) {
+        long until = SystemClock.uptimeMillis() + Math.max(500, Math.min(ms, 20000));
+        if (until > focusUntil) focusUntil = until;
+        if (!hasFocus) {
+            focusReq = buildFocusRequest();
+            hasFocus = getSystemService(AudioManager.class).requestAudioFocus(focusReq) == AudioManager.AUDIOFOCUS_REQUEST_GRANTED;
+        }
+        main.removeCallbacks(focusRelease);
+        main.postAtTime(focusRelease, focusUntil);
+    }
+
+    private void releaseFocusIfDue() {
+        if (SystemClock.uptimeMillis() + 50 < focusUntil) {
+            main.postAtTime(focusRelease, focusUntil);
+            return;
+        }
+        if (hasFocus && focusReq != null) getSystemService(AudioManager.class).abandonAudioFocusRequest(focusReq);
+        hasFocus = false;
     }
 
     /* ---------- atualização pelo GitHub ---------- */
@@ -302,6 +340,11 @@ public class MainActivity extends Activity {
                 Vibrator v = getSystemService(Vibrator.class);
                 if (v != null) v.vibrate(VibrationEffect.createWaveform(p, -1));
             } catch (Exception ignored) {}
+        }
+
+        @JavascriptInterface
+        public void focusFor(int ms) {
+            main.post(() -> MainActivity.this.focusFor(ms));
         }
 
         @JavascriptInterface

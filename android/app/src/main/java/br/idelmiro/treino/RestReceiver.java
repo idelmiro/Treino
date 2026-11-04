@@ -6,6 +6,10 @@ import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.media.AudioFocusRequest;
+import android.media.AudioManager;
+import android.os.Handler;
+import android.os.Looper;
 
 /** Mostra o aviso de fim do descanso quando o app não está na tela. */
 public class RestReceiver extends BroadcastReceiver {
@@ -32,6 +36,17 @@ public class RestReceiver extends BroadcastReceiver {
                 .setContentIntent(pi)
                 .setAutoCancel(true)
                 .build();
+        // Pausa a música por alguns segundos para o aviso ser ouvido.
+        AudioManager am = ctx.getSystemService(AudioManager.class);
+        AudioFocusRequest req = MainActivity.buildFocusRequest();
+        boolean got = am.requestAudioFocus(req) == AudioManager.AUDIOFOCUS_REQUEST_GRANTED;
         ctx.getSystemService(NotificationManager.class).notify(NOTIF_ID, n);
+        if (got) {
+            final PendingResult pr = goAsync();
+            new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                am.abandonAudioFocusRequest(req);
+                pr.finish();
+            }, 3500);
+        }
     }
 }
