@@ -753,7 +753,7 @@ var PT={"abductors":"Abdutores","adductors":"Adutores","anterior_deltoid":"Ombro
   function show(){rb.hidden=false;document.body.classList.add('resting')}
   function hide(){rb.hidden=true;rb.classList.remove('go');document.body.classList.remove('resting')}
   function done(late){
-    S.fired=true;persist();clearInterval(S.iv);clearTimeout(S.to);nat(function(N){N.cancelRest()});
+    S.fired=true;persist();clearInterval(S.iv);clearTimeout(S.to);if(!document.hidden)nat(function(N){N.cancelRest()});
     var c=cfg();af(4000);
     if(c.sound){beep(660,.18,0);beep(880,.18,.22);beep(1175,.4,.44)}
     vib([400,150,400]);say(/^Série/.test(S.next)?'Próxima série':'Próximo exercício');

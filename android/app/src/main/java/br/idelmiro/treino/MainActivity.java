@@ -124,6 +124,7 @@ public class MainActivity extends Activity {
         super.onResume();
         inForeground = true;
         web.onResume();
+        getSystemService(NotificationManager.class).cancel(RestReceiver.NOTIF_ID);
         web.evaluateJavascript("window.dispatchEvent(new Event('focus'))", null);
         if (pendingDownload != -1 && Build.VERSION.SDK_INT >= 26 && getPackageManager().canRequestPackageInstalls()) {
             installDownloaded();
@@ -133,6 +134,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onPause() {
         inForeground = false;
+        web.onPause();
         super.onPause();
     }
 
@@ -318,6 +320,9 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface
         public void cancelRest() {
+            // Com a tela desligada ou o app em segundo plano, quem avisa é o alarme do Android:
+            // a página não pode cancelá-lo.
+            if (!inForeground) return;
             MainActivity.this.cancelRest();
         }
 
