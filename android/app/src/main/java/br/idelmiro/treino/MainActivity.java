@@ -13,6 +13,9 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.content.res.Configuration;
+import android.graphics.Color;
+import android.view.View;
 import android.media.AudioAttributes;
 import android.media.AudioFocusRequest;
 import android.media.AudioManager;
@@ -71,6 +74,7 @@ public class MainActivity extends Activity {
 
         web = new WebView(this);
         setContentView(web);
+        applyBars(systemDark());
         WebSettings s = web.getSettings();
         s.setJavaScriptEnabled(true);
         s.setDomStorageEnabled(true);
@@ -111,6 +115,27 @@ public class MainActivity extends Activity {
         else registerReceiver(downloadReceiver, f);
 
         checkUpdate(false);
+    }
+
+    @Override
+    public void onConfigurationChanged(Configuration c) {
+        super.onConfigurationChanged(c);
+        if (web != null) web.evaluateJavascript("window.dispatchEvent(new Event('treino-uimode'))", null);
+    }
+
+    boolean systemDark() {
+        return (getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES;
+    }
+
+    void applyBars(boolean dark) {
+        int bg = Color.parseColor(dark ? "#0F1519" : "#EDEFF1");
+        getWindow().setStatusBarColor(bg);
+        getWindow().setNavigationBarColor(bg);
+        web.setBackgroundColor(bg);
+        View d = getWindow().getDecorView();
+        int f = d.getSystemUiVisibility();
+        int light = View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR | View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
+        d.setSystemUiVisibility(dark ? (f & ~light) : (f | light));
     }
 
     @Override
@@ -350,6 +375,16 @@ public class MainActivity extends Activity {
         @JavascriptInterface
         public void focusFor(int ms) {
             main.post(() -> MainActivity.this.focusFor(ms));
+        }
+
+        @JavascriptInterface
+        public boolean isDark() {
+            return systemDark();
+        }
+
+        @JavascriptInterface
+        public void setDark(boolean dark) {
+            main.post(() -> applyBars(dark));
         }
 
         @JavascriptInterface
