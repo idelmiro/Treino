@@ -199,6 +199,19 @@ body.resting{padding-bottom:180px}
 #zoom .hlist button{margin:0;width:auto;background:transparent;color:var(--muted);border:1px solid var(--line);padding:4px 10px;font:600 13px var(--body)}
 #zoom .spark{width:100%;height:90px;display:block;margin-top:6px}
 #zoom .hsum{margin:4px 0 0;font-size:14px;color:var(--muted)}
+
+.link+.link{margin-left:14px}
+.link.lalt{font-weight:500}
+#zoom .vsec{margin-top:4px}
+#zoom .vbtn{display:block;text-align:center;background:#C4302B;color:#fff;border-radius:8px;padding:11px;font:600 15px var(--body);text-decoration:none}
+#zoom .vurl{margin:6px 0 0;font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#zoom .vhelp{margin:0 0 8px;font-size:14px;color:var(--muted)}
+#zoom .verr{margin:6px 0 0;font-size:13px;color:#C4302B}
+#zoom .vrow{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:8px}
+#zoom .vrow button{margin:0;width:auto;background:transparent;color:var(--ink);border:1px solid var(--line);padding:8px 14px;font:600 14px var(--body)}
+#zoom .vrow button[data-v="save"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+#zoom .vin{flex:1;min-width:0;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);padding:9px 10px;font:500 15px var(--body)}
+#zoom .vsearch{font:600 13px var(--body);color:var(--accent);text-decoration:underline;text-underline-offset:2px}
 </style>
 
 <div class="wrap">
@@ -209,7 +222,7 @@ body.resting{padding-bottom:180px}
   </header>
   <nav class="tabs" aria-label="Dias da semana"><ul id="tabs"></ul></nav>
   <main id="day" aria-live="polite"></main>
-  <p class="note">Ilustrações e músculos: <a href="https://repdb.co" target="_blank" rel="noopener">Exercise data by RepDB (repdb.co)</a>. Cada imagem alterna entre o início e o fim do movimento; toque nela para ampliar e ver os músculos trabalhados. "Ver exemplos" abre fotos e vídeos no navegador.</p>
+  <p class="note">Ilustrações e músculos: <a href="https://repdb.co" target="_blank" rel="noopener">Exercise data by RepDB (repdb.co)</a>. Cada imagem alterna entre o início e o fim do movimento; toque nela para ampliar e ver os músculos trabalhados. "Ver exemplos" abre a busca no YouTube. Na imagem ampliada você pode salvar o link de um vídeo de referência para cada exercício.</p>
   <div class="ntest"><button type="button" id="rtest">Testar aviso de descanso (10 s)</button><span id="rtestmsg">Toque, saia do app e veja se o aviso chega.</span></div>
   <div class="ntest" id="appver" hidden><span id="appvertx"></span><button type="button" id="appupd">Verificar atualização</button></div>
 </div>
@@ -323,7 +336,29 @@ var PT={"abductors":"Abdutores","adductors":"Adutores","anterior_deltoid":"Ombro
     fly:'<circle class="b" cx="60" cy="22" r="7"/><path class="b" d="M60 30V62H84V82M60 36L30 42M60 36L90 42"/><path class="e" d="M50 26V70"/>',
     moon:'<path class="e" d="M70 14A28 28 0 1 0 92 60A24 24 0 0 1 70 14Z"/><text class="t" x="82" y="30">z</text><text class="t" x="96" y="20">Z</text>'
   };
-  function q(n){return 'https://www.google.com/search?tbm=isch&q='+encodeURIComponent(n+' execução academia')}
+  function q(n){return 'https://www.youtube.com/results?search_query='+encodeURIComponent(n+' execução correta')}
+  /* vídeo de referência escolhido para cada exercício */
+  var VKEY='trinca-videos';
+  function getVids(){try{var v=localStorage.getItem(VKEY);return v?JSON.parse(v):{}}catch(e){return{}}}
+  function getVid(n){return getVids()[n]||''}
+  function setVid(n,u){var o=getVids();if(u)o[n]=u;else delete o[n];try{localStorage.setItem(VKEY,JSON.stringify(o))}catch(e){}}
+  function parseVid(t){
+    t=String(t||'').trim();var m=t.match(/https?:\/\/[^\s"'<>]+/i);
+    if(m)return m[0];
+    m=t.match(/(?:www\.|m\.)?(?:youtube\.com|youtu\.be)\/[^\s"'<>]+/i);
+    return m?'https://'+m[0]:'';
+  }
+  function vidLabel(u){
+    try{var x=new URL(u),h=x.hostname.replace(/^www\.|^m\./,'');
+      if(/youtube\.com|youtu\.be/.test(h))return /\/shorts\//.test(x.pathname)?'YouTube Shorts':'YouTube';
+      return h}catch(e){return 'link'}
+  }
+  function esc(t){return String(t).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+  function linksHtml(n){
+    var v=getVid(n);
+    if(v)return '<a class="link" href="'+esc(v)+'" target="_blank" rel="noopener">▶ Meu vídeo</a> <a class="link lalt" href="'+q(n)+'" target="_blank" rel="noopener">Buscar no YouTube</a>';
+    return '<a class="link" href="'+q(n)+'" target="_blank" rel="noopener">Ver exemplos no YouTube</a>';
+  }
   function ex(name,pose,sets,rest,tip,extra){return {n:name,p:pose,s:sets,r:rest,t:tip,c:!!(extra&&extra.cardio)}}
   var warm=ex('Aquecimento','warm','3 a 5 min','','Movimento leve para preparar o corpo.');
 
@@ -428,13 +463,50 @@ var PT={"abductors":"Abdutores","adductors":"Adutores","anterior_deltoid":"Ombro
       h+='</div>';
     }
     if(m.s.length)h+='<p class="msec"><b>Auxiliares:</b> '+m.s.map(function(k){return PT[k]||k}).join(', ')+'</p>';
+    var nm=btn.getAttribute('data-name');
+    if(nm!=='Aquecimento')h+=vidSection(nm,false);
     h+='<button type="button" id="zclose">Fechar</button>';
-    zcard.onclick=null;zcard.innerHTML=h;
-    zcard.querySelector('h3').textContent=btn.getAttribute('data-name');
-    zoom.hidden=false;document.getElementById('zclose').focus();
+    zcard.innerHTML=h;
+    zcard.querySelector('h3').textContent=nm;
+    zcard.onclick=function(ev){vidClick(ev,nm)};
+    zoom.hidden=false;
+    if(!btn.__keepFocus)document.getElementById('zclose').focus();
+  }
+  function vidSection(n,editing){
+    var v=getVid(n),h='<div class="vsec"><div class="mh">Vídeo de referência</div>';
+    if(v&&!editing){
+      h+='<a class="vbtn" href="'+esc(v)+'" target="_blank" rel="noopener">▶ Assistir meu vídeo</a>'+
+         '<p class="vurl">'+vidLabel(v)+' · <span>'+esc(v)+'</span></p>'+
+         '<div class="vrow"><button type="button" data-v="edit">Trocar</button><button type="button" data-v="del">Remover</button>'+
+         '<a class="vsearch" href="'+q(n)+'" target="_blank" rel="noopener">Buscar outros no YouTube</a></div>';
+    }else{
+      h+='<p class="vhelp">Achou um vídeo bom? No YouTube, toque em <b>Compartilhar → Copiar link</b> e cole aqui.</p>'+
+         '<div class="vrow"><input type="url" class="vin" inputmode="url" placeholder="Cole o link do vídeo" aria-label="Link do vídeo de referência" value="'+esc(v)+'">'+
+         '<button type="button" data-v="save">Salvar</button></div><p class="verr" hidden>Não encontrei um link nesse texto. Cole o link do vídeo.</p>'+
+         '<div class="vrow">'+(v?'<button type="button" data-v="cancel">Cancelar</button>':'')+'<a class="vsearch" href="'+q(n)+'" target="_blank" rel="noopener">Buscar no YouTube</a></div>';
+    }
+    return h+'</div>';
+  }
+  function vidClick(ev,n){
+    var b=ev.target.closest('[data-v]');if(!b)return;
+    var a=b.getAttribute('data-v'),sec=zcard.querySelector('.vsec');
+    if(a==='edit'||a==='cancel'){sec.outerHTML=vidSection(n,a==='edit');var i=zcard.querySelector('.vin');if(i)i.focus();return}
+    if(a==='del'){setVid(n,'');refreshAfterVid(n);return}
+    if(a==='save'){
+      var u=parseVid(zcard.querySelector('.vin').value);
+      if(!u){zcard.querySelector('.verr').hidden=false;return}
+      setVid(n,u);refreshAfterVid(n);
+    }
+  }
+  function refreshAfterVid(n){
+    render();
+    var nb=null;Array.prototype.forEach.call(document.querySelectorAll('[data-zoom]'),function(x){if(x.getAttribute('data-name')===n)nb=x});
+    if(nb){nb.__keepFocus=true;openZoom(nb);nb.__keepFocus=false}
+    else zcard.querySelector('.vsec').outerHTML=vidSection(n,false);
   }
   function closeZoom(){zoom.hidden=true;if(lastBtn)lastBtn.focus()}
   zoom.addEventListener('click',function(ev){if(ev.target===zoom||ev.target.id==='zclose')closeZoom()});
+  zoom.addEventListener('keydown',function(ev){if(ev.key==='Enter'&&ev.target.classList.contains('vin')){ev.preventDefault();var s=zcard.querySelector('[data-v="save"]');if(s)s.click()}});
   document.addEventListener('keydown',function(ev){if(ev.key==='Escape'&&!zoom.hidden)closeZoom()});
   dayEl.addEventListener('click',function(ev){var b=ev.target.closest('[data-zoom]');if(b)openZoom(b)});
   /* ---------- cargas ---------- */
@@ -528,7 +600,7 @@ var PT={"abductors":"Abdutores","adductors":"Adutores","anterior_deltoid":"Ombro
           picHtml(e)+
           '<div class="body"><h3>'+e.n+'</h3><div class="chips"><span class="chip">'+e.s+'</span>'+(e.r?'<span class="chip">Descanso '+e.r+'</span>':'')+'</div>'+
           setsHtml(e,j,sets[j]||0)+musLine(e)+'<p class="tip">'+e.t+'</p>'+
-          (e.n==='Aquecimento'?'':'<a class="link" href="'+q(e.n)+'" target="_blank" rel="noopener">Ver exemplos</a>')+'</div>'+
+          (e.n==='Aquecimento'?'':linksHtml(e.n))+'</div>'+
           '<button type="button" class="check" aria-pressed="'+isDone+'" aria-label="Marcar '+e.n+' como feito">'+CHECK+'</button>'+(hasLoad(e)?'<div class="lwrap">'+loadHtml(e)+'</div>':'')+'</li>';
       });
       h+='</ul><div class="foot"><span class="progress">Marcações valem só para hoje</span><button type="button" class="reset" id="reset">Limpar dia</button></div>';
